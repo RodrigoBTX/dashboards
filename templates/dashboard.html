@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Página Inicial{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4 text-primary">Bem-vindo(a) ao Dashboard Kalipso</h1>
+    <p class="lead">
+        Selecione uma das opções no menu lateral (Encomendas, Produção, etc.) para visualizar as análises em tempo real.
+    </p>
+
+    <div class="row mt-5">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-start border-primary border-5 h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-primary"><i class="fas fa-wrench me-2"></i> Próximos Passos</h5>
+                    <p class="card-text">
+                        Agora que a estrutura da aplicação está funcional, o próximo passo é editar o arquivo 
+                        <code>db_connector.py</code> e adicionar a lógica de execução das suas queries ou Stored Procedures 
+                        para cada seção (Encomendas, Produção, etc.).
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-start border-success border-5 h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success"><i class="fas fa-chart-bar me-2"></i> Visualização de Dados</h5>
+                    <p class="card-text">
+                        Neste painel central, você poderá integrar bibliotecas de gráficos (como Chart.js ou D3.js) 
+                        e tabelas dinâmicas para apresentar os dados do SQL Server de forma interativa e visualmente moderna.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

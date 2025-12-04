@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboards Kalipso{% endblock %}</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --main-bg: #f4f7f9;
+            --sidebar-bg: #2c3e50; /* Cor escura moderna */
+            --sidebar-color: #ecf0f1;
+            --active-bg: #3498db; /* Azul vibrante */
+        }
+
+        body {
+            background-color: var(--main-bg);
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-color);
+            padding: 1.5rem;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s;
+        }
+
+        .sidebar-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+
+        .sidebar .nav-link {
+            color: var(--sidebar-color);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background-color: var(--active-bg);
+            color: #fff;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 1.5rem;
+            min-height: 100vh;
+        }
+
+        /* Responsividade para Mobile */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                box-shadow: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding-top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="d-flex">
+        <!-- Sidebar Fixo -->
+        <div class="sidebar d-flex flex-column">
+            <h4 class="sidebar-header text-center">
+                <i class="fas fa-chart-line me-2"></i> Dashboards Kalipso
+            </h4>
+
+            <!-- Menu de Navegação -->
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a href="{{ url_for('view_data', content_type='encomendas') }}" 
+                       class="nav-link {% if active_page == 'encomendas' %}active{% endif %}">
+                        <i class="fas fa-shopping-cart me-2"></i> Encomendas
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('view_data', content_type='producao') }}" 
+                       class="nav-link {% if active_page == 'producao' %}active{% endif %}">
+                        <i class="fas fa-cogs me-2"></i> Produção
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('view_data', content_type='orcamentos') }}" 
+                       class="nav-link {% if active_page == 'orcamentos' %}active{% endif %}">
+                        <i class="fas fa-calculator me-2"></i> Orçamentos
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('view_data', content_type='rececoes') }}" 
+                       class="nav-link {% if active_page == 'rececoes' %}active{% endif %}">
+                        <i class="fas fa-truck-loading me-2"></i> Receções
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Opções Inferiores -->
+            <ul class="nav nav-pills flex-column mt-auto">
+                <li class="nav-item">
+                    <a href="{{ url_for('config_db') }}" 
+                       class="nav-link {% if active_page == 'configuracoes' %}active{% endif %}">
+                        <i class="fas fa-cog me-2"></i> Configurações DB
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('logout') }}" class="nav-link text-danger">
+                        <i class="fas fa-sign-out-alt me-2"></i> Remover Config.
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!-- Fim Sidebar -->
+
+        <!-- Conteúdo Principal -->
+        <div class="main-content flex-grow-1">
+            
+            <!-- Area de Mensagens (Flash) -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+
+            <!-- Bloco de Conteúdo (a ser preenchido pelos templates filhos) -->
+            {% block content %}{% endblock %}
+
+        </div>
+        <!-- Fim Conteúdo Principal -->
+
+    </div>
+
+    <!-- Bootstrap JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eOzr0/pG7T0T" crossorigin="anonymous"></script>
+</body>
+</html>

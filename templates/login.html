@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Configuração de Conexão{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center pt-5">
+    <div class="col-lg-6 col-md-8">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header bg-primary text-white rounded-top-4">
+                <h3 class="card-title mb-0"><i class="fas fa-database me-2"></i> Configuração da Ligação ao MSSQL Server</h3>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted">Introduza os dados de conexão. Estes dados serão guardados localmente em `config.json`.</p>
+                <form method="POST" action="{{ url_for('config_db') }}" id="configForm">
+                    
+                    <div class="mb-3">
+                        <label for="dsn" class="form-label">DSN (Nome da Fonte de Dados):</label>
+                        <input type="text" class="form-control" id="dsn" name="dsn" value="{{ dsn if dsn is defined else '' }}" required>
+                        <div class="form-text">Ex: Nome do ODBC criado no Windows.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="db" class="form-label">Base de Dados (Database):</label>
+                        <input type="text" class="form-control" id="db" name="db" value="{{ db if db is defined else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="user" class="form-label">Utilizador (User/UID):</label>
+                        <input type="text" class="form-control" id="user" name="user" value="{{ user if user is defined else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Palavra-passe (Password/PWD):</label>
+                        <input type="password" class="form-control" id="password" name="password" value="{{ password if password is defined else '' }}">
+                        <div class="form-text">Deixe vazio se não houver password.</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="submit" name="action" value="cancel" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i> Cancelar
+                        </button>
+                        
+                        <div>
+                            <button type="submit" name="action" value="test" class="btn btn-info btn-lg me-2">
+                                <i class="fas fa-plug me-2"></i> Testar Ligação
+                            </button>
+                            <button type="submit" name="action" value="save" class="btn btn-success btn-lg">
+                                <i class="fas fa-save me-2"></i> Guardar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

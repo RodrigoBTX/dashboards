@@ -1,0 +1,21 @@
+Ignorar arquivos de configuração sensíveis (credenciais da DB)
+
+config.json
+
+Ignorar diretórios e arquivos temporários do Python
+
+pycache/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+Logs e Dados
+
+*.log
+
+Arquivos do Flask
+
+instance/
+.flaskenv
