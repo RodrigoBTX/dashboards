@@ -1,99 +1,265 @@
 import json
 import os
-import pyodbc # Importa pyodbc, necessário para conectar ao MS SQL Server
+import pyodbc # Descomentado para permitir a conexão real
 
-# Define o caminho para o arquivo de configuração, assumindo que está no mesmo diretório
+# --- Configurações e Arquivo ---
+
 CONFIG_FILE = 'config.json'
 
 def load_db_config():
-    """Carrega as configurações de conexão do arquivo JSON."""
-    if not os.path.exists(CONFIG_FILE):
-        return None
-    try:
+    """Carrega as credenciais de conexão do arquivo config.json."""
+    if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f:
-            config = json.load(f)
-            # Verifica se todas as chaves obrigatórias têm valores não vazios
-            if all(config.get(k) for k in ["DSN", "DATABASE", "USER", "PASSWORD"]):
-                return config
-            return None # Retorna None se o arquivo existir, mas estiver vazio/incompleto
-    except Exception as e:
-        print(f"Erro ao carregar a configuração do DB: {e}")
-        return None
+            return json.load(f)
+    return None
 
 def save_db_config(dsn, db, user, password):
-    """Salva as configurações de conexão no arquivo JSON."""
+    """Salva as credenciais de conexão no arquivo config.json."""
     config = {
-        "DSN": dsn,
-        "DATABASE": db,
-        "USER": user,
-        "PASSWORD": password
+        'dsn': dsn,
+        'db': db,
+        'user': user,
+        'password': password
     }
     try:
         with open(CONFIG_FILE, 'w') as f:
-            json.dump(config, f, indent=4)
+            json.dump(config, f)
         return True
-    except Exception as e:
-        print(f"Erro ao salvar a configuração do DB: {e}")
+    except Exception:
         return False
 
-def test_db_connection(dsn, db, user, password):
-    """Tenta estabelecer uma conexão com o SQL Server usando pyodbc."""
-    try:
-        # A string de conexão típica para um DSN (Data Source Name)
-        conn_str = (
-            f'DSN={dsn};'
-            f'DATABASE={db};'
-            f'UID={user};'
-            f'PWD={password}'
-        )
-        
-        # Tenta conectar. O timeout evita que a aplicação fique travada.
-        conn = pyodbc.connect(conn_str, timeout=5)
-        conn.close()
-        return True, "Conexão estabelecida com sucesso!"
-        
-    except pyodbc.Error as ex:
-        # Captura exceções específicas do pyodbc
-        sqlstate = ex.args[0]
-        # Aqui você pode analisar o código de erro do SQL
-        if sqlstate == '28000':
-            return False, "Erro de autenticação: Nome de usuário ou senha inválidos."
-        else:
-            return False, f"Falha na conexão: {ex}"
-    except Exception as e:
-        # Captura outros erros (ex: DSN não encontrado, pyodbc não instalado)
-        return False, f"Erro inesperado durante o teste de conexão: {e}"
+# --- Conexão e Queries ---
 
-def execute_query_data(query_or_sp, params=None):
+def test_db_connection(dsn, db, user, password):
+    """Tenta estabelecer a conexão com a DB (REAL)."""
+    if not dsn or not db or not user:
+        return False, "Dados de conexão incompletos."
+    
+    # LÓGICA REAL COM pyodbc
+    try:
+        conn_str = f'DSN={dsn};DATABASE={db};UID={user};PWD={password if password else ""}'
+        conn = pyodbc.connect(conn_str)
+        conn.close()
+        return True, "Conexão testada e bem-sucedida!"
+    except Exception as e:
+        # Se falhar, retorna a mensagem de erro da exceção pyodbc
+        return False, str(e)
+
+# ----------------------------------------------------------------------
+# QUERIES DE CONTAGEM (RESUMO)
+# ----------------------------------------------------------------------
+
+QUERY_ENCOMENDAS_ABERTO_PARCIAL = """
+SELECT COUNT(DISTINCT bi.bostamp) n_dossiers
+FROM bo (NOLOCK)
+INNER JOIN bo2 (NOLOCK) ON bo.bostamp = bo2.bo2stamp
+INNER JOIN bi (NOLOCK) ON bo.bostamp = bi.bostamp
+WHERE 
+    bo.ndos = 1
+    AND YEAR(bo.dataobra) = YEAR(GETDATE())
+    AND bo.fechada = 0
+    AND bo2.anulado = 0
+    AND bi.qtt > bi.qtt2
+"""
+
+QUERY_ENCOMENDAS_TOTAL_ANO = """
+SELECT COUNT(1) n_dossiers
+FROM bo (NOLOCK)
+INNER JOIN bo2 (NOLOCK) ON bo.bostamp = bo2.bo2stamp
+WHERE 
+    bo.ndos = 1
+    AND YEAR(bo.dataobra) = YEAR(GETDATE())
+    AND bo2.anulado = 0
+"""
+
+QUERY_RECECOES_ABERTO = """
+SELECT COUNT(1) n_dossiers
+FROM bo (NOLOCK)
+INNER JOIN bo2 (NOLOCK) ON bo.bostamp = bo2.bo2stamp
+WHERE 
+    bo.ndos = 47
+    AND YEAR(bo.dataobra) = YEAR(GETDATE())
+    AND bo.fechada = 0
+    AND bo2.anulado = 0
+"""
+
+QUERY_PRODUCOES_ATIVAS = """
+exec sp_prod_ativ 
+"""
+
+QUERY_ORCAMENTOS_ABERTO = """
+SELECT COUNT(1) n_dossiers
+FROM bo (NOLOCK)
+INNER JOIN bo2 (NOLOCK) ON bo.bostamp = bo2.bo2stamp
+WHERE 
+    bo.ndos = 3
+    AND YEAR(bo.dataobra) = YEAR(GETDATE())
+    AND bo.fechada = 0
+    AND bo2.anulado = 0
+"""
+
+# ----------------------------------------------------------------------
+# QUERIES DE DETALHE (GRIDS)
+# ----------------------------------------------------------------------
+
+QUERY_ENCOMENDAS_PARCIAL_DETALHE = """
+SELECT bo.obrano AS "Nº dossier", bo.nome AS "Cliente", bo.no AS "Nº Cliente", bo.obranome AS "V/Req", CONVERT(VARCHAR, bo.dataobra, 103) AS "Data"
+FROM bo (NOLOCK)
+INNER JOIN bo2 (NOLOCK) ON bo.bostamp = bo2.bo2stamp
+INNER JOIN bi (NOLOCK) ON bo.bostamp = bi.bostamp
+WHERE 
+    bo.ndos = 1
+    AND YEAR(bo.dataobra) = YEAR(GETDATE())
+    AND bo.fechada = 0
+    AND bo2.anulado = 0
+    AND bi.qtt > bi.qtt2
+GROUP BY bo.obrano, bo.nome, bo.no, bo.obranome, bo.dataobra
+ORDER BY bo.dataobra ASC
+"""
+
+QUERY_ENCOMENDAS_TOTAL_DETALHE = """
+SELECT bo.obrano AS "Nº dossier", bo.nome AS "Cliente", bo.no AS "Nº Cliente", bo.obranome AS "V/Req", CONVERT(VARCHAR, bo.dataobra, 103) AS "Data"
+FROM bo (NOLOCK)
+INNER JOIN bo2 (NOLOCK) ON bo.bostamp = bo2.bo2stamp
+WHERE 
+    bo.ndos = 1
+    AND YEAR(bo.dataobra) = YEAR(GETDATE())
+    AND bo2.anulado = 0
+ORDER BY bo.dataobra ASC
+"""
+
+
+# ----------------------------------------------------------------------
+# QUERIES DE GRÁFICO (AGREGAÇÃO)
+# ----------------------------------------------------------------------
+
+# Query para Gráfico: Total de Encomendas do Ano por Cliente
+QUERY_ENCOMENDAS_POR_CLIENTE_TOTAL = """
+SELECT TOP 10
+    bo.nome AS "Cliente", 
+    COUNT(1) AS "Nº Encomendas"
+FROM bo (NOLOCK)
+INNER JOIN bo2 (NOLOCK) ON bo.bostamp = bo2.bo2stamp
+WHERE 
+    bo.ndos = 1
+    AND YEAR(bo.dataobra) = YEAR(GETDATE())
+    AND bo2.anulado = 0
+GROUP BY bo.nome
+ORDER BY "Nº Encomendas" DESC
+"""
+
+# Query para Gráfico: Encomendas Por Satisfazer (em Aberto) por Cliente
+QUERY_ENCOMENDAS_POR_CLIENTE_ABERTO = """
+SELECT TOP 10
+    bo.nome AS "Cliente", 
+    COUNT(1) AS "Nº Encomendas"
+FROM bo (NOLOCK)
+INNER JOIN bo2 (NOLOCK) ON bo.bostamp = bo2.bo2stamp
+INNER JOIN bi (NOLOCK) ON bo.bostamp = bi.bostamp
+WHERE 
+    bo.ndos = 1
+    AND YEAR(bo.dataobra) = YEAR(GETDATE())
+    AND bo2.anulado = 0
+    AND bi.qtt > bi.qtt2 -- Quantidade encomendada > Quantidade satisfeita (Aberta)
+GROUP BY bo.nome
+ORDER BY "Nº Encomendas" DESC
+"""
+
+
+def _execute_single_value_query(query_sql):
+    """Função auxiliar para executar uma query que retorna um único valor de contagem."""
+    config = load_db_config()
+    if not config:
+        return 0
+    try:
+        conn_str = f'DSN={config["dsn"]};DATABASE={config["db"]};UID={config["user"]};PWD={config["password"]}'
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        
+        # Executa a query/SP
+        cursor.execute(query_sql)
+        # Tenta obter o resultado da primeira linha e primeira coluna
+        result = cursor.fetchone()
+        conn.close()
+        # Retorna o resultado ou 0 se não houver resultado
+        return result[0] if result and result[0] is not None else 0
+    except Exception as e:
+        print(f"Erro ao executar query de contagem: {e}")
+        # Retorna 0 em caso de erro
+        return 0
+
+def _execute_detailed_query(query_sql):
+    """Função auxiliar para executar uma query que retorna múltiplas linhas e colunas (para o grid)."""
+    config = load_db_config()
+    if not config:
+        return []
+    try:
+        conn_str = f'DSN={config["dsn"]};DATABASE={config["db"]};UID={config["user"]};PWD={config["password"]}'
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        cursor.execute(query_sql)
+        columns = [column[0] for column in cursor.description]
+        
+        # Converte as linhas em uma lista de dicionários (para fácil renderização no Flask)
+        results = []
+        for row in cursor.fetchall():
+            results.append(dict(zip(columns, row)))
+
+        conn.close()
+        return results
+    except Exception as e:
+        print(f"Erro ao executar query de detalhe: {e}")
+        return []
+
+
+def execute_query_data(query_name, params=None):
     """
-    Função Placeholder para executar queries ou Stored Procedures (SPs).
-    
-    A implementação REAL exigirá:
-    1. Carregar a configuração do DB.
-    2. Estabelecer a conexão.
-    3. Criar um cursor e executar a query/SP.
-    4. Fetch dos resultados.
-    5. Fechar conexão.
-    
-    Por enquanto, retorna dados de MOCK para garantir que a aplicação web funcione.
+    Executa uma query ou SP e retorna os dados. Usa lógica REAL para as queries de resumo e detalhe.
     """
-    if 'encomendas' in query_or_sp.lower():
-        # Exemplo de dados de MOCK para a seção 'Encomendas'
-        return {
-            "title": "Análise de Encomendas (MOCK)",
-            "data": [
-                {"Mês": "Jan", "Valor Total": 150000, "Itens": 4500},
-                {"Mês": "Fev", "Valor Total": 180000, "Itens": 5200},
-                {"Mês": "Mar", "Valor Total": 165000, "Itens": 4800},
-            ]
-        }
-    elif 'producao' in query_or_sp.lower():
-        return {
-            "title": "Eficiência de Produção (MOCK)",
-            "data": [
-                {"Linha": "A", "Horas Paradas": 15, "Produzido": 9800},
-                {"Linha": "B", "Horas Paradas": 8, "Produzido": 12500},
-            ]
-        }
     
-    return {"title": "Dados de MOCK Genéricos", "data": [{"Status": "OK", "Detalhe": "Nenhuma query específica encontrada."}]}
+    # --- LÓGICA REAL para as Queries de Resumo (Contagem) ---
+    if query_name == 'query_encomendas_aberto':
+        return _execute_single_value_query(QUERY_ENCOMENDAS_ABERTO_PARCIAL)
+    
+    elif query_name == 'query_encomendas_total':
+        return _execute_single_value_query(QUERY_ENCOMENDAS_TOTAL_ANO)
+
+    elif query_name == 'query_rececoes_aberto':
+        return _execute_single_value_query(QUERY_RECECOES_ABERTO)
+
+    elif query_name == 'query_producoes_ativas':
+        return _execute_single_value_query(QUERY_PRODUCOES_ATIVAS)
+    
+    elif query_name == 'query_orcamentos_aberto':
+        return _execute_single_value_query(QUERY_ORCAMENTOS_ABERTO)
+
+    # --- LÓGICA REAL para as Queries de Detalhe (Grid) ---
+    elif query_name == 'get_data_encomendas':
+        detail_type = params.get('detail_type') if params else None
+        
+        if detail_type == 'parcial':
+            return _execute_detailed_query(QUERY_ENCOMENDAS_PARCIAL_DETALHE)
+        elif detail_type == 'total':
+            return _execute_detailed_query(QUERY_ENCOMENDAS_TOTAL_DETALHE)
+        else:
+            return _execute_detailed_query(QUERY_ENCOMENDAS_PARCIAL_DETALHE)
+            
+    # --- NOVO: LÓGICA REAL para o Gráfico (Agregação) ---
+    elif query_name == 'get_data_encomendas_por_cliente':
+        # Esta lógica agora recebe 'chart_type' (total ou aberto) via params
+        chart_type = params.get('chart_type') if params else None
+        
+        if chart_type == 'aberto':
+            print("A executar query de gráfico para Encomendas Abertas por Cliente...")
+            return _execute_detailed_query(QUERY_ENCOMENDAS_POR_CLIENTE_ABERTO)
+        else:
+            # Padrão é Total
+            print("A executar query de gráfico para Encomendas Totais por Cliente...")
+            return _execute_detailed_query(QUERY_ENCOMENDAS_POR_CLIENTE_TOTAL)
+
+    # --- Fallback
+    else:
+        # Se a query não for reconhecida ou não for implementada
+        print(f"Alerta: Query '{query_name}' não implementada ou reconhecida.")
+        return []
