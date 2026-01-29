@@ -1,6 +1,6 @@
 import json
 import os
-import pyodbc # Descomentado para permitir a conexão real
+import pyodbc 
 
 # --- Configurações e Arquivo ---
 
@@ -14,7 +14,7 @@ def load_db_config():
     return None
 
 def save_db_config(dsn, db, user, password):
-    """Salva as credenciais de conexão no arquivo config.json."""
+    """Guarda as credenciais de conexão no arquivo config.json."""
     config = {
         'dsn': dsn,
         'db': db,

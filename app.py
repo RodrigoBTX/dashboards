@@ -100,12 +100,12 @@ def config_db():
             success, message = test_db_connection(dsn, db, user, password)
             if success:
                 if save_db_config(dsn, db, user, password):
-                    flash('Configuração salva com sucesso! Acesso liberado.', 'success')
+                    flash('Configuração guardada com sucesso! Acesso autorizado.', 'success')
                     return redirect(url_for('welcome_summary')) 
                 else:
-                    flash('Erro ao salvar o arquivo de configuração.', 'danger')
+                    flash('Erro ao guardar o arquivo de configuração.', 'danger')
             else:
-                flash(f'Não foi possível salvar: Falha na conexão: {message}', 'danger')
+                flash(f'Não foi possível guardar: Falha na conexão: {message}', 'danger')
                 
         elif action == 'cancel':
             if load_db_config():
